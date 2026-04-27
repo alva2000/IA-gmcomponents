@@ -1,0 +1,7 @@
+requests
+groq
+python-dotenv
+sentence_transformers
+faiss-cpu
+flask-cors
+flask

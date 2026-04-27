@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GM Components - Carrito</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div class="main-container">
+
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="logo">
+                <img src="El mago y la tecnologia futurista.png" alt="GM Components">
+            </div>
+
+            <div class="menu">
+                <button class="active">🛒 Carrito</button>
+                <button id="analyzeBtn">Analizar carrito</button>
+            </div>
+        </div>
+
+        <!-- CONTENIDO -->
+        <div class="content">
+
+            <div class="header">
+                <div>
+                    <h1>🛒 Mi Carrito</h1>
+                    <p>Revisa tus productos antes de continuar</p>
+                </div>
+
+                <button class="clear-btn" onclick="clearCart()">Vaciar carrito</button>
+            </div>
+
+            <!-- BOTONES CARRITOS -->
+            <div class="cart-buttons">
+                <button onclick="setCart(1)">Carrito 1</button>
+                <button onclick="setCart(2)">Carrito 2</button>
+                <button onclick="setCart(3)">Carrito 3</button>
+            </div>
+
+            <div class="cart-layout">
+
+                <!-- TABLA -->
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Cantidad</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="cart-container"></tbody>
+                </table>
+
+                <!-- IA RESULTADO -->
+                <div id="analysisResult" class="analysis-box">
+                    <h3>Resultado del análisis</h3>
+                    <p id="analysisText">
+                        Presiona "Analizar carrito" para ver resultados
+                    </p>
+                </div>
+
+                <!-- RESUMEN -->
+                <div class="summary">
+                    <h2>Resumen del pedido</h2>
+
+                    <div class="summary-item">
+                        <span>Subtotal</span>
+                        <span id="subtotal">$0</span>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>Envío</span>
+                        <span>$3990</span>
+                    </div>
+
+                    <hr>
+
+                    <div class="summary-item total">
+                        <span>Total</span>
+                        <span id="total">$0</span>
+                    </div>
+
+                    <button class="checkout-btn">Pagar</button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================================
+         JS COMPLETO
+    ================================ -->
+    <script>
+        let currentCart = 1;
+        let productsAPI = [];
+
+        // ================================
+        // CARRITOS (IDS REALES)
+        // ================================
+        const carts = {
+            1: [44, 1, 18, 19, 29],
+            2: [40, 2, 10, 23, 32],
+            3: [43, 3, 11, 24, 38]
+        };
+
+        // ================================
+        // CARGAR PRODUCTOS
+        // ================================
+        async function loadProducts() {
+            const res = await fetch("https://gmcomponents.onrender.com/backend/products/");
+            productsAPI = await res.json();
+            renderCart();
+        }
+
+        // ================================
+        // RENDER TABLA
+        // ================================
+        function renderCart() {
+            const container = document.getElementById("cart-container");
+            container.innerHTML = "";
+
+            let subtotal = 0;
+
+            const cartIds = carts[currentCart];
+
+            cartIds.forEach(id => {
+
+                const product = productsAPI.find(p => Number(p.id) === Number(id));
+
+                if (!product) return;
+
+                const price = Number(product.precio || 0);
+                subtotal += price;
+
+                container.innerHTML += `
+                    <tr>
+                        <td>
+                            <div class="product-name">${product.descripcion}</div>
+                            <div class="product-desc">ID: ${product.id}</div>
+                        </td>
+                        <td class="price">$${price}</td>
+                        <td>1</td>
+                        <td>$${price}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById("subtotal").innerText = "$" + subtotal;
+            document.getElementById("total").innerText = "$" + (subtotal + 3990);
+        }
+
+        // ================================
+        // CAMBIAR CARRITO
+        // ================================
+        window.setCart = function (id) {
+            currentCart = id;
+            renderCart();
+        };
+
+        // ================================
+        // ANALIZAR IA
+        // ================================
+        document.getElementById("analyzeBtn").addEventListener("click", async () => {
+
+            const ids = carts[currentCart];
+
+            const payload = {
+                cpu: ids[0] || null,
+                gpu: ids[1] || null,
+                ram: ids[2] || null,
+                mb: ids[3] || null,
+                case: ids[4] || null
+            };
+
+            const res = await fetch("http://127.0.0.1:5000/run-ia", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const json = await res.json();
+
+            document.getElementById("analysisText").innerText =
+                json.ok ? json.resultado : "❌ " + json.error;
+        });
+
+        // ================================
+        // LIMPIAR
+        // ================================
+        function clearCart() {
+            document.getElementById("analysisText").innerText =
+                "Presiona \"Analizar carrito\" para ver resultados";
+        }
+
+        // ================================
+        // INIT
+        // ================================
+        loadProducts();
+    </script>
+
+</body>
+
+</html>
